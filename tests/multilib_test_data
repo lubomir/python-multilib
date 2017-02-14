@@ -1,6 +1,7 @@
 #!/usr/bin/python -tt
 
 from argparse import ArgumentParser
+from distutils.version import LooseVersion
 import dnf
 import logging
 import os
@@ -53,7 +54,10 @@ def read_repo(path):
         base = dnf.Base()
         conf = base.conf
         conf.cachedir = cachedir
-        repo = dnf.repo.Repo('repo', conf)
+        if LooseVersion(dnf.__version__) < LooseVersion("2.0.0"):
+            repo = dnf.repo.Repo('repo', conf.cachedir)
+        else:
+            repo = dnf.repo.Repo('repo', conf)
         repo.baseurl = [path]
         base.repos.add(repo)
         base.fill_sack(load_system_repo=False, load_available_repos=True)
