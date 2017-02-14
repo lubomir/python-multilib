@@ -81,8 +81,8 @@ class test_methods(object):
                 other_po = fakepo.FakePackageObject(d=pkg)
                 if other_po.name == fpo.name:
                     continue
-                for (p_name, p_flag, (p_e, p_v, p_r)) in fpo.provides:
-                    for (r_name, r_flag, (r_e, r_v, r_r)) in other_po.requires:
+                for p_name in fpo.provides:
+                    for r_name in other_po.requires:
                         if p_name == r_name:
                             print '  %s requires this (%s)' % (other_po.name, p_name)
                             data = code
@@ -140,14 +140,14 @@ class test_methods(object):
                 return self.confirm_true(fpo, meth, 'preferred 64-bit, should be True')
             if fpo.name.startswith('kernel'):
                 provides = False
-                for (p_name, p_flag, (p_e, p_v, p_r)) in fpo.provides:
+                for p_name in fpo.provides:
                     if p_name == 'kernel' or p_name == 'kernel-devel':
                         provides = True
                 if provides:
                     return self.confirm_true(fpo, meth, '64-bit kernel, should be True')
         if fpo.name.startswith('kernel'):
             # looks redundant, but we're not 64-bit here
-            for (p_name, p_flag, (p_e, p_v, p_r)) in fpo.provides:
+            for p_name in fpo.provides:
                 if p_name == 'kernel':
                     return self.confirm_false(fpo, meth, '32-bit kernel should be False')
         for file in fpo.returnFileEntries():
@@ -238,7 +238,7 @@ class test_methods(object):
             if fpo.arch.find('64') != -1:
                 if fpo.name.startswith('kernel'):
                     provides = False
-                    for (p_name, p_flag, (p_e, p_v, p_r)) in fpo.provides:
+                    for p_name in fpo.provides:
                         if p_name == 'kernel' or p_name == 'kernel-devel':
                             provides = True
                     if provides:
@@ -297,7 +297,7 @@ class test_methods(object):
             elif fpo.name.startswith('kernel'):
                 # looks redundant, but we're not 64-bit here
                 is_kd, is_dev = False, False
-                for (p_name, p_flag, (p_e, p_v, p_r)) in fpo.provides:
+                for p_name in fpo.provides:
                     if p_name == 'kernel-devel':
                         is_kd = True
                         break

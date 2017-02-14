@@ -8,8 +8,8 @@ class FakePackageObject(object):
         if po:
             self.name = po.name
             self.arch = po.arch
-            self.provides = po.provides
-            self.requires = po.requires
+            self.provides = list(filter_yum_reldeps(po.provides))
+            self.requires = list(filter_yum_reldeps(po.requires))
             self.files = po.returnFileEntries()
         elif d:
             self.name = d['name']
@@ -32,3 +32,7 @@ class FakePackageObject(object):
     def returnFileEntries(self):
         return self.files
 
+
+def filter_yum_reldeps(provides):
+    for (p_name, p_flag, (p_e, p_v, p_r)) in provides:
+        yield p_name
