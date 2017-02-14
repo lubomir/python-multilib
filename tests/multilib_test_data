@@ -62,17 +62,18 @@ def read_repo(path):
         base.repos.add(repo)
         base.fill_sack(load_system_repo=False, load_available_repos=True)
 
-        debuginfo = base.sack.query().filter(name__glob='*debuginfo*')
-        query = base.sack.query().filter(pkg__neq=debuginfo)
+        query = base.sack.query()
         query = query.filter(arch__neq='noarch')
         query = query.filter(arch__neq='src')
 
         # Make sure repo contains some packages for a multilib-supporting arch
         multilib_pkgs = query.filter(arch=['ppc64', 'x86_64']).apply()
         if not multilib_pkgs:
-            return []
+            return
 
-        return sorted(query)
+        for pkg in sorted(query):
+            if 'debuginfo' not in pkg.name:
+                yield pkg
     finally:
         shutil.rmtree(cachedir)
 
