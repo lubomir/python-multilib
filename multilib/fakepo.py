@@ -3,7 +3,7 @@ class FakePackageObject(object):
     fake package object that contains enough data to run through the testing
     framework herein
     """
-    def __init__(self, po=None, d=None):
+    def __init__(self, po=None, d=None, pkg=None):
         # FPO's can be created from yum Package Objects or dictionaries
         if po:
             self.name = po.name
@@ -17,6 +17,12 @@ class FakePackageObject(object):
             self.provides = d['provides']
             self.requires = d['requires']
             self.files = d['files']
+        elif pkg:
+            self.name = pkg.name
+            self.arch = pkg.arch
+            self.provides = [str(x).split()[0] for x in pkg.provides]
+            self.requires = [str(x).split()[0] for x in pkg.requires]
+            self.files = pkg.files
         else:
             raise RuntimeError('fake package objects must come from a real yum object or dictionary')
 

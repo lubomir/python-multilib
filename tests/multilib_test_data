@@ -1,11 +1,12 @@
 #!/usr/bin/python -tt
 
-from glob import glob
-import logging
 from argparse import ArgumentParser
+import dnf
+import logging
 import os
+import shutil
 import sys
-import yum.packages
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -35,51 +36,49 @@ def get_options():
         log.setLevel(logging.DEBUG)
     return args
 
-def get_fpo(rpmfile):
+def get_fpo(pkg):
     """return a fake yum PackageObject for a given RPM"""
-    po = yum.packages.YumLocalPackage(filename=rpmfile)
-    return multilib.fakepo.FakePackageObject(po=po)
+    return multilib.fakepo.FakePackageObject(pkg=pkg)
 
 def find_repos(cpath):
     """generator to recursively go down a path and find yum repositories"""
     for (dirpath, dirnames, _) in os.walk(cpath):
         if 'repodata' in dirnames:
-            # make sure this is a repo for a multilib-supporting arch
-            for arch in ('ppc64', 'x86_64'):
-                if arch in dirpath:
-                    ppath = dirpath
-                    rpms = glob(os.path.join(dirpath, '*.rpm'))
-                    if len(rpms) == 0:
-                        # rpms are not beside the repodata directory
-                        log.debug('no rpms in base dir')
-                        ppath = os.path.join(dirpath, 'Packages')
-                        rpms = glob(os.path.join(ppath, '*.rpm'))
-                        if len(rpms) == 0:
-                            log.debug('no rpms in Packages')
-                            # rpms are not in the Packages directory, Fedora
-                            # does this with a, b, c subdirs
-                            for subdir in os.listdir(ppath):
-                                rpms = glob(os.path.join(ppath, subdir, '*.rpm'))
-                                if len(rpms) == 0:
-                                    log.debug('no rpms anywhere!')
-                                    continue
-                                yield os.path.join(ppath, subdir)
-                        else:
-                            yield ppath
+            yield dirpath
+
+
+def read_repo(path):
+    cachedir = tempfile.mkdtemp()
+    try:
+        base = dnf.Base()
+        conf = base.conf
+        conf.cachedir = cachedir
+        repo = dnf.repo.Repo('repo', conf)
+        repo.baseurl = [path]
+        base.repos.add(repo)
+        base.fill_sack(load_system_repo=False, load_available_repos=True)
+
+        debuginfo = base.sack.query().filter(name__glob='*debuginfo*')
+        query = base.sack.query().filter(pkg__neq=debuginfo)
+        query = query.filter(arch__neq='noarch')
+        query = query.filter(arch__neq='src')
+
+        # Make sure repo contains some packages for a multilib-supporting arch
+        multilib_pkgs = query.filter(arch=['ppc64', 'x86_64']).apply()
+        if not multilib_pkgs:
+            return []
+
+        return sorted(query)
+    finally:
+        shutil.rmtree(cachedir)
 
 if __name__ == '__main__':
     args = get_options()
     data = {}
     for repo in find_repos(args.compose_path):
         log.info('processing %s' % repo)
-        for rpmf in glob(os.path.join(repo, '*.rpm')):
-            fpo = get_fpo(rpmf)
-            if 'debuginfo' in fpo.name:
-                # debuginfos never have multilib, skip for brevity's sake
-                continue
-            if fpo.arch == 'noarch':
-                # do not care about noarch packages
-                continue
+        for pkg in read_repo(repo):
+            fpo = get_fpo(pkg)
             key = '%s.%s' % (fpo.name, fpo.arch)
             data[key] = fpo.convert()
     with open(args.outfile, 'w') as fd:
