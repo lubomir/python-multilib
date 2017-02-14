@@ -26,6 +26,7 @@ class test_methods(object):
     @classmethod
     def setup_class(cls):
         # read test data
+        here = os.path.join(os.path.dirname(__file__))
         try:
             files = os.listdir('testdata')
         except OSError:
@@ -35,7 +36,7 @@ class test_methods(object):
         pj = None
         for f in files:
             if fnmatch(f, '*.json.bz2'):
-                fd = bz2.BZ2File(os.path.join('testdata',f), 'r')
+                fd = bz2.BZ2File(os.path.join(here, '..', 'testdata',f), 'r')
                 pj = json.load(fd)
                 break # just take the first hit
         assert pj, 'No test data found in testdata, create some with the multilib_test_data script'
@@ -43,7 +44,7 @@ class test_methods(object):
         fd.close()
 
         # read multilib configuration
-        cls.conffile = '/etc/multilib.conf'
+        cls.conffile = os.path.join(here, '..', 'etc/multilib.conf')
         cp = ConfigParser()
         assert len(cp.read(cls.conffile)) == 1, 'missing ' + cls.conffile
         cls.conf = cp
@@ -270,7 +271,7 @@ class test_methods(object):
             self.confirm_false(fpo, meth)
 
     def test_runtime(self):
-        meth = multilib.RuntimeMultilibMethod()
+        meth = multilib.RuntimeMultilibMethod(self.conffile)
         for pinfo in self.packages.values():
             fpo = fakepo.FakePackageObject(d=pinfo)
             if not self.do_runtime(fpo, meth):
@@ -280,7 +281,7 @@ class test_methods(object):
         sect = 'devel'
         wl = self.conf.get(sect, 'white')
         bl = self.conf.get(sect, 'black')
-        meth = multilib.DevelMultilibMethod()
+        meth = multilib.DevelMultilibMethod(self.conffile)
         for pinfo in self.packages.values():
             fpo = fakepo.FakePackageObject(d=pinfo)
             if fpo.name in bl:
