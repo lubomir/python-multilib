@@ -2,7 +2,7 @@
 
 from glob import glob
 import logging
-from optparse import OptionParser
+from argparse import ArgumentParser
 import os
 import sys
 import yum.packages
@@ -26,15 +26,14 @@ log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 def get_options():
-    parser = OptionParser(usage='%prog [options] path-to-compose')
-    parser.add_option('-d', '--debug', default=False, action='store_true')
-    parser.add_option('-o', '--outfile', default='multilib_data.json')
-    opts, args = parser.parse_args()
-    if len(args) != 1:
-        parser.error('you must provide a path to a compose')
-    if opts.debug:
+    parser = ArgumentParser()
+    parser.add_argument('-d', '--debug', default=False, action='store_true')
+    parser.add_argument('-o', '--outfile', default='multilib_data.json')
+    parser.add_argument('compose_path', metavar='path-to-compose')
+    args = parser.parse_args()
+    if args.debug:
         log.setLevel(logging.DEBUG)
-    return opts, args[0]
+    return args
 
 def get_fpo(rpmfile):
     """return a fake yum PackageObject for a given RPM"""
@@ -71,9 +70,9 @@ def find_repos(cpath):
             find_repos(os.path.join(dirpath, deeperdir))
 
 if __name__ == '__main__':
-    opts, compose_path = get_options()
+    args = get_options()
     data = {}
-    for repo in find_repos(compose_path):
+    for repo in find_repos(args.compose_path):
         log.info('processing %s' % repo)
         for rpmf in glob(os.path.join(repo, '*.rpm')):
             fpo = get_fpo(rpmf)
@@ -85,7 +84,6 @@ if __name__ == '__main__':
                 continue
             key = '%s.%s' % (fpo.name, fpo.arch)
             data[key] = fpo.convert()
-    fd = open(opts.outfile, 'w')
-    json.dump(data, fd, indent=2, sort_keys=True)
-    fd.close()
-    log.info('data written to %s' % opts.outfile)
+    with open(args.outfile, 'w') as fd:
+        json.dump(data, fd, indent=2, sort_keys=True)
+    log.info('data written to %s' % args.outfile)
