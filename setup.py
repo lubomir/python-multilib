@@ -26,5 +26,6 @@ setup(
     install_requires = ['six'],
     package_data = {'': ['README.md', 'LICENSE']},
     data_files = [('/etc', ['etc/multilib.conf'])],
-    test_suite      = "tests",
+    test_suite="nose.collector",
+    tests_require=['nose'],
 )
