@@ -14,9 +14,9 @@ except ImportError:
 
 import bz2
 from ConfigParser import ConfigParser
-import fakepo
+from multilib import fakepo
 from fnmatch import fnmatch
-import multilib
+from multilib import multilib
 
 # if you want to test the testing with the original mash code
 #import mash.multilib as multilib
